@@ -16,26 +16,47 @@ local my_table = awful.util.table or gears.table -- 4.{0,1} compatibility
 
 local theme                                     = {}
 theme.dir                                       = os.getenv("HOME") .. "/.config/awesome/themes/awesome-gentoo"
-theme.wallpaper                                 = theme.dir .. "/wall.png"
+theme.wallpaper                                 = theme.dir .. "/wallpapers/hunter.jpg"
 theme.font                                      = "xos4 Terminus 9"
+--[[
 theme.fg_normal                                 = "#FEFEFE"
 theme.fg_focus                                  = "#32D6FF"
 theme.fg_urgent                                 = "#C83F11"
 theme.bg_normal                                 = "#222222"
 theme.bg_focus                                  = "#1E2320"
 theme.bg_urgent                                 = "#3F3F3F"
+]]--
+theme.fg_normal                                 = "#ECEFF4"
+theme.fg_focus                                  = "#88C0D0"
+theme.fg_urgent                                 = "#D08770"
+theme.bg_normal                                 = "#2E3440"
+theme.bg_focus                                  = "#3B4252"
+theme.bg_urgent                                 = "#3B4252"
+theme.bg_systray                                = theme.bg_normal
+--[[
 theme.taglist_fg_focus                          = "#00CCFF"
 theme.tasklist_bg_focus                         = "#222222"
 theme.tasklist_fg_focus                         = "#00CCFF"
+]]--
 theme.border_width                              = dpi(2)
+--[[
 theme.border_normal                             = "#3F3F3F"
 theme.border_focus                              = "#6F6F6F"
 theme.border_marked                             = "#CC9393"
+]]--
+theme.border_normal                             = "#3B4252"
+theme.border_focus                              = "#4C566A"
+theme.border_marked                             = "#D08770"
+--[[
 theme.titlebar_bg_focus                         = "#3F3F3F"
 theme.titlebar_bg_normal                        = "#3F3F3F"
+]]--
+theme.titlebar_bg_focus                         = "#3B4252"
+theme.titlebar_bg_normal                        = "#2E3440"
 theme.titlebar_bg_focus                         = theme.bg_focus
 theme.titlebar_bg_normal                        = theme.bg_normal
 theme.titlebar_fg_focus                         = theme.fg_focus
+theme.mouse_finder_color                        = "#D08770"
 theme.menu_height                               = dpi(16)
 theme.menu_width                                = dpi(140)
 theme.menu_submenu_icon                         = theme.dir .. "/icons/submenu.png"
@@ -78,7 +99,7 @@ theme.widget_task                               = theme.dir .. "/icons/task.png"
 theme.widget_scissors                           = theme.dir .. "/icons/scissors.png"
 theme.tasklist_plain_task_name                  = true
 theme.tasklist_disable_icon                     = true
-theme.useless_gap                               = 0
+theme.useless_gap                               = 3 
 theme.titlebar_close_button_focus               = theme.dir .. "/icons/titlebar/close_focus.png"
 theme.titlebar_close_button_normal              = theme.dir .. "/icons/titlebar/close_normal.png"
 theme.titlebar_ontop_button_focus_active        = theme.dir .. "/icons/titlebar/ontop_focus_active.png"
@@ -101,18 +122,19 @@ theme.titlebar_maximized_button_normal_inactive = theme.dir .. "/icons/titlebar/
 local markup = lain.util.markup
 local separators = lain.util.separators
 
--- Binary clock
-local binclock = require("themes.awesome-gentoo.binclock"){
-    height = dpi(32),
-    show_seconds = true,
-    color_active = theme.fg_normal,
-    color_inactive = theme.bg_focus
-}
+-- Textclock
+local clockicon = wibox.widget.imagebox(theme.widget_clock)
+local clock = awful.widget.watch(
+    "date +'%a %d %b %R'", 60,
+    function(widget, stdout)
+        widget:set_markup(" " .. markup.font(theme.font, stdout))
+    end
+)
 
 -- Calendar
 theme.cal = lain.widget.cal({
     --cal = "cal --color=always",
-    attach_to = { binclock.widget },
+    attach_to = { clock },
     notification_preset = {
         font = "xos4 Terminus 10",
         fg   = theme.fg_normal,
@@ -132,15 +154,28 @@ task:buttons(my_table.join(awful.button({}, 1, lain.widget.contrib.task.prompt))
 local scissors = wibox.widget.imagebox(theme.widget_scissors)
 scissors:buttons(my_table.join(awful.button({}, 1, function() awful.spawn.with_shell("xsel | xsel -i -b") end)))
 
+-- Weather
+local weathericon = wibox.widget.imagebox(theme.widget_weather)
+theme.weather = lain.widget.weather({
+   -- city_id = 2737824, -- placeholder (Matosinhos)
+   city_id = 6322846, -- placeholder (Londrina)
+   notification_preset = { font = "xos4 Terminus 10", fg = theme.fg_normal },
+   weather_na_markup = markup.fontfg(theme.font, "#eca4c4", "N/A "),
+   settings = function()
+       descr = weather_now["weather"][1]["description"]:lower()
+       units = math.floor(weather_now["main"]["temp"])
+       widget:set_markup(markup.fontfg(theme.font, "#eca4c4", descr .. " @ " .. units .. "°C "))
+   end
+})
+
 -- Mail IMAP check
---[[ commented because it needs to be set before use
 local mailicon = wibox.widget.imagebox(theme.widget_mail)
 mailicon:buttons(my_table.join(awful.button({ }, 1, function () awful.spawn(mail) end)))
 theme.mail = lain.widget.imap({
     timeout  = 180,
-    server   = "server",
-    mail     = "mail",
-    password = "keyring get mail",
+    server   = "imap.e-goi.com",
+    mail     = "temporim@e-goi.com",
+    password = "t1ag0t3mp0",
     settings = function()
         if mailcount > 0 then
             widget:set_text(" " .. mailcount .. " ")
@@ -151,7 +186,6 @@ theme.mail = lain.widget.imap({
         end
     end
 })
---]]
 
 -- ALSA volume
 theme.volume = lain.widget.alsabar({
@@ -356,7 +390,7 @@ function theme.at_screen_connect(s)
         { -- Right widgets
             layout = wibox.layout.fixed.horizontal,
             wibox.widget.systray(),
-            wibox.container.margin(scissors, dpi(4), dpi(8)),
+            --wibox.container.margin(scissors, dpi(4), dpi(8)),
             --[[ using shapes
             pl(wibox.widget { mpdicon, theme.mpd.widget, layout = wibox.layout.align.horizontal }, "#343434"),
             pl(task, "#343434"),
@@ -373,10 +407,12 @@ function theme.at_screen_connect(s)
             arrow(theme.bg_normal, "#343434"),
             wibox.container.background(wibox.container.margin(wibox.widget { mailicon, theme.mail and theme.mail.widget, layout = wibox.layout.align.horizontal }, dpi(4), dpi(7)), "#343434"),
             arrow("#343434", theme.bg_normal),
-            wibox.container.background(wibox.container.margin(wibox.widget { mpdicon, theme.mpd.widget, layout = wibox.layout.align.horizontal }, dpi(3), dpi(6)), theme.bg_focus),
+            wibox.container.background(wibox.container.margin(wibox.widget { weathericon, theme.weather.widget, layout = wibox.layout.align.horizontal }, dpi(3), dpi(4)), theme.bg_focus),
+            --[[wibox.container.background(wibox.container.margin(wibox.widget { mpdicon, theme.mpd.widget, layout = wibox.layout.align.horizontal }, dpi(3), dpi(6)), theme.bg_focus),
             arrow(theme.bg_normal, "#343434"),
             wibox.container.background(wibox.container.margin(task, dpi(3), dpi(7)), "#343434"),
-            arrow("#343434", "#777E76"),
+            --]]
+            arrow(theme.bg_normal, "#777E76"),
             wibox.container.background(wibox.container.margin(wibox.widget { memicon, mem.widget, layout = wibox.layout.align.horizontal }, dpi(2), dpi(3)), "#777E76"),
             arrow("#777E76", "#4B696D"),
             wibox.container.background(wibox.container.margin(wibox.widget { cpuicon, cpu.widget, layout = wibox.layout.align.horizontal }, dpi(3), dpi(4)), "#4B696D"),
@@ -389,7 +425,7 @@ function theme.at_screen_connect(s)
             arrow("#8DAA9A", "#C0C0A2"),
             wibox.container.background(wibox.container.margin(wibox.widget { nil, neticon, net.widget, layout = wibox.layout.align.horizontal }, dpi(3), dpi(3)), "#C0C0A2"),
             arrow("#C0C0A2", "#777E76"),
-            wibox.container.background(wibox.container.margin(binclock.widget, dpi(4), dpi(8)), "#777E76"),
+            wibox.container.background(wibox.container.margin(clock, dpi(4), dpi(8)), "#777E76"),
             arrow("#777E76", "alpha"),
             --]]
             s.mylayoutbox,
